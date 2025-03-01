@@ -139,7 +139,7 @@ const App = () => {
 
                 <button onClick={addAchievement}>Add New Achievement</button>
 
-                <h2>Создай задание</h2>
+                <h2>Создание заявки</h2>
                 <form onSubmit={(e) => { e.preventDefault(); createChallengeRequest(); }}>
                     <div>
                         <label>
@@ -159,6 +159,7 @@ const App = () => {
                         <label>
                             Категория:
                             <select
+                                className="select-input"
                                 value={category}
                                 onChange={(e) => setCategory(e.target.value)}
                                 required
@@ -176,6 +177,7 @@ const App = () => {
                         <label>
                             Описание:
                             <textarea
+                                className="textarea-input"
                                 placeholder="Введите описание"
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
@@ -186,8 +188,9 @@ const App = () => {
 
                     <div>
                         <label>
-                            Награда в виде баллов:
+                            Ожидаемые баллы:
                             <input
+                                className="text-input"
                                 type="number"
                                 placeholder="Введите количество баллов"
                                 value={rewardPoints}
@@ -197,7 +200,9 @@ const App = () => {
                         </label>
                     </div>
 
-                    <button type="submit">Отправить заявку</button>
+                    <button 
+                    className="submit-button"
+                    type="submit">Отправить заявку</button>
                 </form>
 
                 <h2>Задания</h2>
