@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const { Pool } = require('pg');
+const TelegramBot = require('node-telegram-bot-api');
 require('dotenv').config();
 
 const app = express();
@@ -15,6 +16,19 @@ const pool = new Pool({
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT,
 });
+
+// Инициализация Telegram бота
+const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+
+// Функция для отправки сообщения через Telegram бота
+const sendTelegramMessage = async (chatId, message) => {
+    try {
+        await bot.sendMessage(chatId, message);
+        console.log('Message sent successfully');
+    } catch (error) {
+        console.error('Error sending message:', error);
+    }
+};
 
 // Регистрация пользователя
 app.post('/register', async (req, res) => {
@@ -71,7 +85,7 @@ app.post('/achievements', async (req, res) => {
         // Отправляем уведомление пользователю
         const user = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
         if (user.rows[0] && user.rows[0].telegram_id) {
-            await sendNotification(user.rows[0].telegram_id, `You earned a new achievement: ${achievementName}`);
+            await sendTelegramMessage(user.rows[0].telegram_id, `You earned a new achievement: ${achievementName}`);
         }
 
         res.status(201).json(result.rows[0]);
@@ -84,14 +98,31 @@ app.post('/achievements', async (req, res) => {
 // Создание заявки на челлендж
 app.post('/challenge-requests', async (req, res) => {
     const { userId, challengeName, category, description, rewardPoints } = req.body;
+
     try {
         const result = await pool.query(
             'INSERT INTO challenge_requests (user_id, challenge_name, category, description, reward_points) VALUES ($1, $2, $3, $4, $5) RETURNING *',
             [userId, challengeName, category, description, rewardPoints]
         );
+
+        // Получаем данные пользователя
+        const user = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+        if (user.rows[0] && user.rows[0].telegram_id) {
+            const chatId = user.rows[0].telegram_id;
+
+            // Отправляем уведомление через бота
+            const message = `🎉 Новая заявка на челлендж!\n\n` +
+                            `Название: ${challengeName}\n` +
+                            `Категория: ${category}\n` +
+                            `Описание: ${description}\n` +
+                            `Награда: ${rewardPoints} баллов`;
+
+            await sendTelegramMessage(chatId, message);
+        }
+
         res.status(201).json(result.rows[0]);
     } catch (err) {
-        console.error(err);
+        console.error('Database error:', err);
         res.status(500).send('Server error');
     }
 });
