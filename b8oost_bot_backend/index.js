@@ -30,6 +30,21 @@ const sendTelegramMessage = async (chatId, message) => {
     }
 };
 
+app.post('/update-request-status', async (req, res) => {
+    const { requestId, status } = req.body;
+
+    try {
+        const result = await pool.query(
+            'UPDATE challenge_requests SET status = $1 WHERE id = $2 RETURNING *',
+            [status, requestId]
+        );
+        res.status(200).json(result.rows[0]);
+    } catch (err) {
+        console.error('Ошибка при обновлении статуса заявки:', err);
+        res.status(500).send('Ошибка сервера');
+    }
+});
+
 // Регистрация пользователя
 app.post('/register', async (req, res) => {
     const { telegramId, username, role } = req.body;

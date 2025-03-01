@@ -1,64 +1,65 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './styles.css';
 
+// Mock-пользователи
+const mockUsers = [
+    {
+        id: 1,
+        telegram_id: 123456789,
+        username: 'employee_user',
+        first_name: 'Employee',
+        role: 'employee', // Роль сотрудника
+    },
+    {
+        id: 2,
+        telegram_id: 987654321,
+        username: 'manager_user',
+        first_name: 'Manager',
+        role: 'manager', // Роль руководителя
+    },
+];
+
+// Компонент для переключения пользователей
+const UserSwitcher = ({ users, currentUser, onUserChange }) => {
+    return (
+        <div className="user-switcher">
+            <label>
+                Выберите пользователя:
+                <select 
+                    className="select-input"
+                    value={currentUser.id}
+                    onChange={(e) => {
+                        const selectedUser = users.find(user => user.id === parseInt(e.target.value));
+                        onUserChange(selectedUser);
+                    }}
+                >
+                    {users.map(user => (
+                        <option key={user.id} value={user.id}>
+                            {user.first_name} ({user.role})
+                        </option>
+                    ))}
+                </select>
+            </label>
+        </div>
+    );
+};
+
 const App = () => {
-    const [user, setUser] = useState(null);
-    const [role, setRole] = useState('');
+    const [currentUser, setCurrentUser] = useState(mockUsers[0]); // По умолчанию выбран первый пользователь
     const [challengeRequests, setChallengeRequests] = useState([]);
 
-    // Состояния для формы заявки на челлендж
     const [challengeName, setChallengeName] = useState('');
     const [category, setCategory] = useState('');
     const [description, setDescription] = useState('');
     const [rewardPoints, setRewardPoints] = useState(0);
 
+    // Загрузка заявок на челлендж
     useEffect(() => {
-        const tg = window.Telegram.WebApp;
-        tg.ready();
+        fetchChallengeRequests();
+    }, [currentUser]);
 
-        const initData = tg.initDataUnsafe;
-        if (initData.user) {
-            const telegramId = initData.user.id;
-            const username = initData.user.username || 'Unknown';
-            const firstName = initData.user.first_name || 'User';
-
-            // Регистрируем пользователя
-            registerUser(telegramId, username, firstName);
-
-            // Получаем роль пользователя
-            axios.post('/login', { telegramId: telegramId })
-                .then(response => {
-                    setRole(response.data.role);
-                    setUser({
-                        id: telegramId,
-                        username: username,
-                        first_name: firstName,
-                    });
-
-                    // Загружаем заявки на челлендж
-                    fetchChallengeRequests();
-                })
-                .catch(error => {
-                    console.error('Error fetching user role:', error);
-                });
-        }
-    }, []);
-
-    const registerUser = async (telegramId, username, firstName) => {
-        try {
-            const response = await axios.post('/register', {
-                telegramId: telegramId,
-                username: username,
-                firstName: firstName,
-                role: 'employee', // По умолчанию роль "сотрудник"
-            });
-            console.log('User registered:', response.data);
-        } catch (error) {
-            console.error('Error registering user:', error);
-        }
-    };
-
+    // Функция для загрузки заявок
     const fetchChallengeRequests = async () => {
         try {
             const response = await axios.get('/challenge-requests');
@@ -68,9 +69,10 @@ const App = () => {
         }
     };
 
+    // Функция для создания заявки
     const createChallengeRequest = async () => {
         const requestData = {
-            userId: user.id,
+            userId: currentUser.id,
             challengeName: challengeName,
             category: category,
             description: description,
@@ -96,9 +98,10 @@ const App = () => {
         }
     };
 
+    // Функция для обновления статуса заявки
     const updateRequestStatus = async (requestId, status) => {
         try {
-            const response = await axios.post('/update-request-status', {
+            const response = await axios.post('http://localhost:5000/update-request-status', {
                 requestId: requestId,
                 status: status,
             });
@@ -198,8 +201,8 @@ const App = () => {
 
                         {request.status === 'pending' && (
                             <div>
-                                <button onClick={() => updateRequestStatus(request.id, 'approved')}>Одобрить</button>
-                                <button onClick={() => updateRequestStatus(request.id, 'rejected')}>Отклонить</button>
+                                <button className="submit-button" onClick={() => updateRequestStatus(request.id, 'approved')}>Одобрить</button>
+                                <button className="submit-button" onClick={() => updateRequestStatus(request.id, 'rejected')}>Отклонить</button>
                             </div>
                         )}
                     </li>
@@ -211,25 +214,32 @@ const App = () => {
     return (
         <div className="container">
             <div className="content">
-                <h1>Welcome to the Mini App!</h1>
+                <h1>B8oost app failure bruh lmao</h1>
 
-                {user ? (
+                {/* Переключатель пользователей */}
+                <UserSwitcher
+                    users={mockUsers}
+                    currentUser={currentUser}
+                    onUserChange={(user) => setCurrentUser(user)}
+                />
+
+                {currentUser ? (
                     <div>
                         <h2>Your Profile</h2>
-                        <p>User ID: {user.id}</p>
-                        <p>Username: {user.username}</p>
-                        <p>First Name: {user.first_name}</p>
-                        <p>Role: {role}</p>
+                        <p>User ID: {currentUser.id}</p>
+                        <p>Username: {currentUser.username}</p>
+                        <p>First Name: {currentUser.first_name}</p>
+                        <p>Role: {currentUser.role}</p>
                     </div>
                 ) : (
                     <p>Loading user data...</p>
                 )}
 
                 {/* Меню для сотрудника */}
-                {role === 'employee' && renderEmployeeMenu()}
+                {currentUser.role === 'employee' && renderEmployeeMenu()}
 
                 {/* Меню для руководителя */}
-                {role === 'manager' && renderManagerMenu()}
+                {currentUser.role === 'manager' && renderManagerMenu()}
             </div>
         </div>
     );
